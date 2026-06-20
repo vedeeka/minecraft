@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MineClone</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;font-family:'Courier New',monospace;}
+#c{display:block;width:100vw;height:100vh;}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;color:#fff;}
+#overlay h1{font-size:52px;color:#5c9e2a;text-shadow:4px 4px 0 #2a5e10;letter-spacing:6px;margin-bottom:8px;font-weight:900;}
+#overlay .sub{color:#aaa;font-size:13px;line-height:2;margin-bottom:28px;text-align:center;}
+#overlay .sub b{color:#ddd;}
+#playbtn{background:#5c9e2a;border:none;color:#fff;padding:14px 48px;font-size:20px;cursor:pointer;font-family:inherit;letter-spacing:3px;border-bottom:5px solid #2e6010;font-weight:bold;}
+#playbtn:hover{background:#6db830;}
+#crosshair{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;display:none;}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(255,255,255,.9);box-shadow:0 0 2px rgba(0,0,0,.8);}
+#crosshair::before{width:2px;height:22px;left:50%;top:50%;transform:translate(-50%,-50%);}
+#crosshair::after{width:22px;height:2px;left:50%;top:50%;transform:translate(-50%,-50%);}
+#hud{position:fixed;bottom:0;left:0;right:0;pointer-events:none;display:none;align-items:flex-end;flex-direction:column;}
+#hotbar-wrap{width:100%;display:flex;justify-content:center;padding-bottom:6px;}
+#hotbar{display:flex;gap:2px;}
+.hs{width:50px;height:50px;background:rgba(20,20,20,.75);border:2px solid #666;display:flex;align-items:center;justify-content:center;position:relative;}
+.hs.active{border:2px solid #fff;box-shadow:0 0 0 1px #aaa;}
+.hs canvas{width:34px;height:34px;image-rendering:pixelated;}
+.hs .cnt{position:absolute;bottom:1px;right:3px;font-size:10px;color:#fff;text-shadow:1px 1px 0 #000;}
+#hp{display:flex;justify-content:center;gap:1px;padding-bottom:4px;}
+.hrt{font-size:15px;line-height:1;}
+#dbg{position:fixed;top:6px;left:8px;color:#fff;font-size:11px;line-height:1.8;text-shadow:1px 1px 2px #000;display:none;pointer-events:none;}
+#statusbar{position:fixed;top:6px;right:8px;color:#ffd966;font-size:12px;line-height:1.8;text-shadow:1px 1px 2px #000;display:none;pointer-events:none;text-align:right;}
+#notice{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);color:#ffff66;font-size:14px;text-shadow:1px 1px 2px #000;pointer-events:none;opacity:0;transition:opacity .6s;white-space:nowrap;}
+#pause{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff;z-index:80;}
+#pause h2{font-size:36px;margin-bottom:20px;letter-spacing:4px;}
+.pbtn{background:#444;border:none;color:#fff;padding:10px 36px;margin:4px;font-size:15px;cursor:pointer;font-family:inherit;letter-spacing:2px;border-bottom:3px solid #222;min-width:180px;}
+.pbtn:hover{background:#666;}
+#settings-box{display:flex;flex-direction:column;gap:12px;background:rgba(255,255,255,.07);padding:16px 22px;margin:16px 0;border-radius:4px;font-size:13px;letter-spacing:1px;}
+.set-row{display:flex;align-items:center;gap:14px;justify-content:space-between;min-width:260px;}
+.set-row input[type=range]{flex:1;accent-color:#5c9e2a;}
+.set-row span{min-width:42px;text-align:right;color:#9cd66a;}
+#inv{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:90;}
+#inv-box{background:#2b2b2b;border:2px solid #888;padding:18px;color:#fff;}
+#inv-box h3{text-align:center;margin-bottom:12px;font-size:15px;letter-spacing:2px;}
+.inv-row{display:flex;gap:2px;margin-bottom:2px;}
+.is{width:50px;height:50px;background:rgba(0,0,0,.5);border:1px solid #555;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+.is:hover{border-color:#fff;}
+.is canvas{width:34px;height:34px;image-rendering:pixelated;}
+.is .cnt{position:absolute;bottom:1px;right:3px;font-size:10px;color:#fff;text-shadow:1px 1px 0 #000;}
+.inv-sep{height:8px;}
+#inv-close{display:block;margin:10px auto 0;background:#444;border:none;color:#fff;padding:6px 24px;cursor:pointer;font-family:inherit;font-size:13px;}
+/* block target outline canvas */
+#outline{position:fixed;inset:0;pointer-events:none;display:none;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<canvas id="outline"></canvas>
+
+<div id="overlay">
+  <h1>⛏ MINECLONE</h1>
+  <div class="sub">
+    <b>WASD</b> Move &nbsp;·&nbsp; <b>Mouse</b> Look &nbsp;·&nbsp; <b>Space</b> Jump / Swim up<br>
+    <b>Ctrl</b> or double-tap <b>W</b> Sprint &nbsp;·&nbsp; <b>Shift</b> Sneak (edge-safe) / Swim down<br>
+    <b>Left click</b> Mine &nbsp;·&nbsp; <b>Right click</b> Place &nbsp;·&nbsp; <b>Scroll / 1-9</b> Hotbar<br>
+    <b>E</b> Inventory &nbsp;·&nbsp; <b>F</b> Fly &nbsp;·&nbsp; <b>Esc</b> Pause &amp; settings
+  </div>
+  <button id="playbtn">▶ PLAY</button>
+</div>
+
+<div id="hud">
+  <div id="hp"></div>
+  <div id="hotbar-wrap"><div id="hotbar"></div></div>
+</div>
+<div id="crosshair"></div>
+<div id="dbg"></div>
+<div id="statusbar"></div>
+<div id="notice"></div>
+
+<div id="pause">
+  <h2>PAUSED</h2>
+  <button class="pbtn" id="resumebtn">Resume</button>
+  <div id="settings-box">
+    <label class="set-row">Mouse sensitivity
+      <input type="range" id="sensSlider" min="0.3" max="3" step="0.05" value="1">
+      <span id="sensVal">1.00x</span>
+    </label>
+    <label class="set-row">Invert Y
+      <input type="checkbox" id="invertYChk">
+    </label>
+  </div>
+  <button class="pbtn" onclick="location.reload()">Main Menu</button>
+</div>
+
+<div id="inv">
+  <div id="inv-box">
+    <h3>INVENTORY</h3>
+    <div id="inv-grid"></div>
+    <button id="inv-close">Close [E]</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════
+//  BLOCK DEFINITIONS
+// ═══════════════════════════════════════════════
+const AIR=0,GRASS=1,DIRT=2,STONE=3,SAND=4,WATER=5,LOG=6,LEAVES=7,
+      PLANKS=8,GLASS=9,GRAVEL=10,COAL=11,IRON=12,GOLD=13,DIAMOND=14,
+      SNOW=15,BEDROCK=16,COBBLE=17,CRAFTING=18,LAVA=19,OBSIDIAN=20,CACTUS=21;
+
+// Each block: name, top color, side color, bottom color, hardness, alpha
+const BD={
+  [GRASS]:{n:'Grass',     t:[88,172,56],   s:[100,155,68], b:[134,96,67],  h:1},
+  [DIRT]: {n:'Dirt',      t:[134,96,67],   s:[134,96,67],  b:[134,96,67],  h:1},
+  [STONE]:{n:'Stone',     t:[120,120,120], s:[120,120,120],b:[120,120,120],h:4},
+  [SAND]: {n:'Sand',      t:[219,207,137], s:[214,202,132],b:[219,207,137],h:1},
+  [WATER]:{n:'Water',     t:[40,100,200],  s:[36,90,185],  b:[36,90,185],  h:-1,a:.65},
+  [LOG]:  {n:'Oak Log',   t:[110,85,48],   s:[72,52,28],   b:[110,85,48],  h:2},
+  [LEAVES]:{n:'Leaves',   t:[52,128,40],   s:[48,118,36],  b:[52,128,40],  h:1,a:.85},
+  [PLANKS]:{n:'Planks',   t:[162,130,78],  s:[158,125,72], b:[162,130,78], h:2},
+  [GLASS]:{n:'Glass',     t:[165,222,238], s:[160,218,234],b:[165,222,238],h:1,a:.28},
+  [GRAVEL]:{n:'Gravel',   t:[128,118,110], s:[124,114,106],b:[128,118,110],h:1},
+  [COAL]: {n:'Coal Ore',  t:[95,95,95],    s:[95,95,95],   b:[95,95,95],   h:4},
+  [IRON]: {n:'Iron Ore',  t:[188,158,128], s:[185,155,125],b:[188,158,128],h:4},
+  [GOLD]: {n:'Gold Ore',  t:[225,188,55],  s:[220,183,50], b:[225,188,55], h:4},
+  [DIAMOND]:{n:'Diamond', t:[55,202,210],  s:[50,196,205], b:[55,202,210], h:6},
+  [SNOW]: {n:'Snow',      t:[240,248,255], s:[238,245,252],b:[240,248,255],h:1},
+  [BEDROCK]:{n:'Bedrock', t:[38,38,38],    s:[38,38,38],   b:[38,38,38],   h:9999},
+  [COBBLE]:{n:'Cobblestone',t:[108,108,108],s:[104,104,104],b:[108,108,108],h:3},
+  [CRAFTING]:{n:'Crafting Table',t:[158,102,38],s:[148,92,32],b:[162,130,78],h:2},
+  [LAVA]: {n:'Lava',      t:[222,78,8],    s:[218,72,4],   b:[222,78,8],   h:-1},
+  [OBSIDIAN]:{n:'Obsidian',t:[20,12,36],   s:[18,10,32],   b:[20,12,36],   h:50},
+  [CACTUS]:{n:'Cactus',   t:[60,135,60],   s:[54,122,54],  b:[60,135,60],  h:1.5},
+};
+
+// ═══════════════════════════════════════════════
+//  NOISE / WORLD GEN
+// ═══════════════════════════════════════════════
+const SEED = (Math.random()*0xfffff)|0;
+const CHUNK=16, WH=96, SEA=42;
+
+function ihash(x,z,s){
+  let h=(s^Math.imul(x,374761393)^Math.imul(z,668265263))|0;
+  h=Math.imul(h^(h>>>13),1274126177)|0;
+  return ((h^(h>>>16))&0xffffff)/0xffffff;
+}
+function smoothN(x,z,s){
+  let xi=Math.floor(x),zi=Math.floor(z);
+  let xf=x-xi,zf=z-zi;
+  let u=xf*xf*(3-2*xf),v=zf*zf*(3-2*zf);
+  return (ihash(xi,zi,s)*(1-u)+ihash(xi+1,zi,s)*u)*(1-v)
+        +(ihash(xi,zi+1,s)*(1-u)+ihash(xi+1,zi+1,s)*u)*v;
+}
+function fbm(x,z,s){
+  let v=0,a=1,f=1,m=0;
+  for(let i=0;i<5;i++){v+=smoothN(x*f,z*f,s+i*37)*a;m+=a;a*=.5;f*=2.1;}
+  return v/m;
+}
+
+// 3D noise (used for cave carving) — folds the y coordinate into the hash seed
+// and reuses the cheap 2D hash so it stays fast enough to run per-voxel.
+function ihash3(x,y,z,s){
+  let hs=(s^Math.imul(y,2654435761))|0;
+  return ihash(x,z,hs);
+}
+function smoothN3(x,y,z,s){
+  let xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z);
+  let xf=x-xi,yf=y-yi,zf=z-zi;
+  let u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),w=zf*zf*(3-2*zf);
+  function lerp(a,b,t){return a+(b-a)*t;}
+  let c000=ihash3(xi,yi,zi,s),    c100=ihash3(xi+1,yi,zi,s);
+  let c010=ihash3(xi,yi+1,zi,s),  c110=ihash3(xi+1,yi+1,zi,s);
+  let c001=ihash3(xi,yi,zi+1,s),  c101=ihash3(xi+1,yi,zi+1,s);
+  let c011=ihash3(xi,yi+1,zi+1,s),c111=ihash3(xi+1,yi+1,zi+1,s);
+  let x00=lerp(c000,c100,u), x10=lerp(c010,c110,u);
+  let x01=lerp(c001,c101,u), x11=lerp(c011,c111,u);
+  let y0=lerp(x00,x10,v), y1=lerp(x01,x11,v);
+  return lerp(y0,y1,w);
+}
+
+function surfHeight(wx,wz){
+  let h=fbm(wx*.022,wz*.022,SEED);
+  let mtn=fbm(wx*.009,wz*.009,SEED+713);
+  let ridge=Math.pow(mtn,1.7)*36; // sharper, taller peaks than a flat linear blend
+  return Math.round(SEA-3 + h*18 + ridge);
+}
+function biomeAt(wx,wz){
+  let t=smoothN(wx*.006,wz*.006,SEED+300);
+  let el=surfHeight(wx,wz);
+  if(el>SEA+24) return 'mountain';
+  if(t<0.28) return 'desert';
+  if(t>0.74) return 'tundra';
+  return 'plains';
+}
+function treeAt(wx,wz){
+  let b=biomeAt(wx,wz);
+  let dens=(b==='desert')?.965:.908; // cacti are sparser than trees
+  return ihash(wx,wz,SEED+5151)>dens && (wx*11+wz*7+wx*wz)%5!==0;
+}
+
+// Chunk storage
+let chunks={}, dirtyMeshes={};
+function ckey(cx,cz){return cx+'|'+cz;}
+function bidx(lx,y,lz){return (y*CHUNK+lz)*CHUNK+lx;}
+
+function genChunk(cx,cz){
+  let d=new Uint8Array(CHUNK*CHUNK*WH);
+  for(let lx=0;lx<CHUNK;lx++){
+    for(let lz=0;lz<CHUNK;lz++){
+      let wx=cx*CHUNK+lx, wz=cz*CHUNK+lz;
+      let surf=Math.max(1,Math.min(WH-12,surfHeight(wx,wz)));
+      let bio=biomeAt(wx,wz);
+      let bedrockH=1+Math.floor(ihash(wx,wz,SEED+77)*3); // jagged 1-3 block bedrock floor
+      let isBeach = bio!=='desert' && surf<=SEA+2 && surf>=SEA-2;
+      for(let y=0;y<WH;y++){
+        let id=AIR;
+        if(y<bedrockH){
+          id=BEDROCK;
+        } else if(y<surf-4){
+          let r1=ihash(wx,wz*13+y*7,SEED+33);
+          let r2=ihash(wx*7+y,wz,SEED+44);
+          if(r1>.977&&y<20) id=DIAMOND;
+          else if(r1>.952&&y<36) id=GOLD;
+          else if(r1>.91) id=IRON;
+          else if(r2>.86) id=COAL;
+          else id=STONE;
+          // Carve cave systems with 3D noise; deep pockets fill with lava.
+          if(y>=bedrockH+3 && y<surf-6){
+            let cn=smoothN3(wx*.085,y*.11,wz*.085,SEED+900);
+            if(cn>.715) id=(y<9)?LAVA:AIR;
+          }
+        } else if(y<surf){
+          id=isBeach?SAND:((bio==='desert')?SAND:DIRT);
+        } else if(y===surf){
+          if(isBeach) id=SAND;
+          else if(bio==='desert') id=SAND;
+          else if(bio==='mountain'&&surf>SEA+22) id=SNOW;
+          else id=GRASS;
+        } else if(y>surf && y<=SEA){
+          id=WATER;
+        }
+        d[bidx(lx,y,lz)]=id;
+      }
+      // Vegetation — biome-specific, never floating in open water or on beaches
+      if(treeAt(wx,wz) && surf>SEA && !isBeach){
+        if(bio==='desert'){
+          // Cactus
+          let ch=2+Math.floor(ihash(wx,wz,SEED+61)*3);
+          let ty=surf+1;
+          for(let i=0;i<ch&&ty+i<WH;i++) d[bidx(lx,ty+i,lz)]=CACTUS;
+        } else if(bio==='tundra'||bio==='mountain'){
+          // Pine: tall trunk + conical canopy
+          let th=5+Math.floor(ihash(wx,wz,SEED+22)*3);
+          let ty=surf+1;
+          for(let i=0;i<th&&ty+i<WH;i++) d[bidx(lx,ty+i,lz)]=LOG;
+          let top=ty+th;
+          let levels=[2,1,1,0];
+          for(let li=0;li<levels.length;li++){
+            let r=levels[li];
+            let ly=top-(levels.length-1)+li;
+            if(ly<0||ly>=WH) continue;
+            for(let dx2=-r;dx2<=r;dx2++){
+              for(let dz2=-r;dz2<=r;dz2++){
+                if(r>0&&Math.abs(dx2)===r&&Math.abs(dz2)===r) continue;
+                let nlx=lx+dx2,nlz=lz+dz2;
+                if(nlx<0||nlx>=CHUNK||nlz<0||nlz>=CHUNK) continue;
+                if(d[bidx(nlx,ly,nlz)]===AIR) d[bidx(nlx,ly,nlz)]=LEAVES;
+              }
+            }
+          }
+        } else {
+          // Oak
+          let th=4+Math.floor(ihash(wx,wz,SEED+22)*3);
+          let ty=surf+1;
+          for(let i=0;i<th&&ty+i<WH;i++) d[bidx(lx,ty+i,lz)]=LOG;
+          let top=ty+th;
+          for(let dy=-2;dy<=2;dy++){
+            for(let dx2=-2;dx2<=2;dx2++){
+              for(let dz2=-2;dz2<=2;dz2++){
+                if(dx2===0&&dz2===0&&dy<0) continue;
+                if(Math.sqrt(dx2*dx2+dy*dy*0.6+dz2*dz2)>2.1) continue;
+                let nlx=lx+dx2,nly=top+dy-1,nlz=lz+dz2;
+                if(nlx<0||nlx>=CHUNK||nlz<0||nlz>=CHUNK) continue;
+                if(nly<0||nly>=WH) continue;
+                if(d[bidx(nlx,nly,nlz)]===AIR) d[bidx(nlx,nly,nlz)]=LEAVES;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return d;
+}
+
+function getChunk(cx,cz){
+  let k=ckey(cx,cz);
+  if(!chunks[k]) chunks[k]=genChunk(cx,cz);
+  return chunks[k];
+}
+function getBlock(wx,wy,wz){
+  if(wy<0) return BEDROCK;
+  if(wy>=WH) return AIR;
+  let cx=Math.floor(wx/CHUNK), cz=Math.floor(wz/CHUNK);
+  let lx=((wx%CHUNK)+CHUNK)%CHUNK, lz=((wz%CHUNK)+CHUNK)%CHUNK;
+  return getChunk(cx,cz)[bidx(lx,wy,lz)];
+}
+function setBlock(wx,wy,wz,id){
+  if(wy<0||wy>=WH) return;
+  let cx=Math.floor(wx/CHUNK), cz=Math.floor(wz/CHUNK);
+  let lx=((wx%CHUNK)+CHUNK)%CHUNK, lz=((wz%CHUNK)+CHUNK)%CHUNK;
+  getChunk(cx,cz)[bidx(lx,wy,lz)]=id;
+  dirtyMeshes[ckey(cx,cz)]=true;
+  if(lx===0) dirtyMeshes[ckey(cx-1,cz)]=true;
+  if(lx===CHUNK-1) dirtyMeshes[ckey(cx+1,cz)]=true;
+  if(lz===0) dirtyMeshes[ckey(cx,cz-1)]=true;
+  if(lz===CHUNK-1) dirtyMeshes[ckey(cx,cz+1)]=true;
+}
+
+// ═══════════════════════════════════════════════
+//  WEBGL
+// ═══════════════════════════════════════════════
+const canvas=document.getElementById('c');
+const gl=canvas.getContext('webgl',{antialias:false})||canvas.getContext('experimental-webgl');
+gl.getExtension('OES_element_index_uint');
+
+const VS=`
+attribute vec3 aP;
+attribute vec3 aN;
+attribute vec4 aC;
+uniform mat4 uP;
+uniform mat4 uV;
+uniform vec3 uEye;
+varying vec4 vC;
+varying float vFog;
+void main(){
+  vec4 wp=vec4(aP,1.0);
+  gl_Position=uP*uV*wp;
+  // directional lighting baked into vertex color via aC already
+  vC=aC;
+  float d=length(aP-uEye);
+  vFog=clamp((d-38.0)/28.0,0.0,1.0);
+}`;
+const FS=`
+precision mediump float;
+varying vec4 vC;
+varying float vFog;
+void main(){
+  vec3 fog=vec3(0.55,0.72,0.88);
+  vec3 col=mix(vC.rgb,fog,vFog);
+  gl_FragColor=vec4(col,vC.a);
+}`;
+
+function mkShader(t,src){
+  let s=gl.createShader(t);
+  gl.shaderSource(s,src);gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog=gl.createProgram();
+gl.attachShader(prog,mkShader(gl.VERTEX_SHADER,VS));
+gl.attachShader(prog,mkShader(gl.FRAGMENT_SHADER,FS));
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+
+const LOC={
+  aP:gl.getAttribLocation(prog,'aP'),
+  aN:gl.getAttribLocation(prog,'aN'),
+  aC:gl.getAttribLocation(prog,'aC'),
+  uP:gl.getUniformLocation(prog,'uP'),
+  uV:gl.getUniformLocation(prog,'uV'),
+  uEye:gl.getUniformLocation(prog,'uEye'),
+};
+
+gl.enable(gl.DEPTH_TEST);
+gl.enable(gl.CULL_FACE);
+gl.cullFace(gl.BACK);
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+
+// ── Matrix math (column-major like OpenGL) ──
+function m4(){ return new Float32Array(16); }
+function ident(m){ m.fill(0);m[0]=m[5]=m[10]=m[15]=1;return m; }
+function mul(a,b,o){
+  // o = a * b  (both column-major)
+  for(let c=0;c<4;c++) for(let r=0;r<4;r++){
+    let s=0; for(let k=0;k<4;k++) s+=a[k*4+r]*b[c*4+k];
+    o[c*4+r]=s;
+  }
+  return o;
+}
+function perspective(fovy,asp,near,far,o){
+  ident(o);
+  let f=1/Math.tan(fovy/2);
+  o[0]=f/asp; o[5]=f;
+  o[10]=(far+near)/(near-far); o[11]=-1;
+  o[14]=(2*far*near)/(near-far); o[15]=0;
+  return o;
+}
+// Build view matrix from eye position + yaw + pitch
+// Standard FPS: yaw rotates around Y, pitch around local X
+function fpvMatrix(ex,ey,ez,yaw,pitch,o){
+  // rotation: Ry(yaw) then Rx(pitch)
+  let cy=Math.cos(yaw),sy=Math.sin(yaw);
+  let cp=Math.cos(pitch),sp=Math.sin(pitch);
+  // right = (cy, 0, -sy)
+  // up    = (sy*sp, cp, cy*sp)
+  // fwd   = (sy*cp, -sp, cy*cp)  <- into screen
+  // View = R^T * T(-eye)
+  let rx=cy,  ry=0,   rz=-sy;
+  let ux=sy*sp,uy=cp,  uz=cy*sp;
+  let fx=sy*cp,fy=-sp, fz=cy*cp;
+  ident(o);
+  o[0]=rx; o[4]=ry; o[8]=rz;
+  o[1]=ux; o[5]=uy; o[9]=uz;
+  o[2]=fx; o[6]=fy; o[10]=fz;
+  o[12]=-(rx*ex+ry*ey+rz*ez);
+  o[13]=-(ux*ex+uy*ey+uz*ez);
+  o[14]=-(fx*ex+fy*ey+fz*ez);
+  return o;
+}
+
+// ── Chunk mesh building ──
+// Face definitions: [normal x,y,z], [4 vertex offsets], light factor, face-type
+const FDEF=[
+  // +Y top
+  {n:[0,1,0], v:[[0,1,0],[0,1,1],[1,1,1],[1,1,0]], L:1.00, t:'top'},
+  // -Y bottom
+  {n:[0,-1,0],v:[[0,0,1],[0,0,0],[1,0,0],[1,0,1]], L:0.50, t:'bot'},
+  // +Z south
+  {n:[0,0,1], v:[[1,0,1],[0,0,1],[0,1,1],[1,1,1]], L:0.80, t:'side'},
+  // -Z north
+  {n:[0,0,-1],v:[[0,0,0],[1,0,0],[1,1,0],[0,1,0]], L:0.80, t:'side'},
+  // +X east
+  {n:[1,0,0], v:[[1,0,0],[1,0,1],[1,1,1],[1,1,0]], L:0.60, t:'side'},
+  // -X west
+  {n:[-1,0,0],v:[[0,0,1],[0,0,0],[0,1,0],[0,1,1]], L:0.60, t:'side'},
+];
+const FDIR=[[0,1,0],[0,-1,0],[0,0,1],[0,0,-1],[1,0,0],[-1,0,0]];
+
+// Interleaved buffer: aP(3 floats) + aN(3) + aC(4) = 10 floats per vertex
+const STRIDE=10;
+
+function buildMesh(cx,cz){
+  let floats=[], indices=[];
+  let chunk=getChunk(cx,cz);
+  let vi=0;
+  for(let y=0;y<WH;y++){
+    for(let lz=0;lz<CHUNK;lz++){
+      for(let lx=0;lx<CHUNK;lx++){
+        let bid=chunk[bidx(lx,y,lz)];
+        if(!bid) continue;
+        let def=BD[bid]; if(!def) continue;
+        let wx=cx*CHUNK+lx, wz=cz*CHUNK+lz;
+        let alpha=def.a||1;
+
+        for(let fi=0;fi<6;fi++){
+          let fd=FDEF[fi], nd=FDIR[fi];
+          let nx=wx+nd[0], ny=y+nd[1], nz=wz+nd[2];
+          let nb=getBlock(nx,ny,nz);
+          let nbDef=BD[nb];
+          // Cull face if neighbour is same block, or solid opaque non-transparent
+          let show = !nb ||
+            (bid!==WATER&&nb===WATER) ||
+            (bid!==LAVA&&nb===LAVA) ||
+            (nbDef&&nbDef.a&&nbDef.a<0.99&&nb!==bid);
+          if(!show) continue;
+
+          let col=fd.t==='top'?def.t:fd.t==='bot'?def.b:def.s;
+          let L=fd.L;
+          let r=col[0]/255*L, g=col[1]/255*L, b2=col[2]/255*L;
+
+          fd.v.forEach(([vx,vy,vz])=>{
+            floats.push(wx+vx,y+vy,wz+vz, ...fd.n, r,g,b2,alpha);
+          });
+          let base=vi;
+          indices.push(base,base+1,base+2, base,base+2,base+3);
+          vi+=4;
+        }
+      }
+    }
+  }
+  return {floats:new Float32Array(floats), indices:new Uint32Array(indices), count:indices.length};
+}
+
+let meshCache={};
+function getMesh(cx,cz){
+  let k=ckey(cx,cz);
+  if(dirtyMeshes[k]){ delete meshCache[k]; delete dirtyMeshes[k]; }
+  if(!meshCache[k]){
+    let m=buildMesh(cx,cz);
+    if(!m.count){ meshCache[k]=null; return null; }
+    let vb=gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,vb);
+    gl.bufferData(gl.ARRAY_BUFFER,m.floats,gl.STATIC_DRAW);
+    let ib=gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,m.indices,gl.STATIC_DRAW);
+    meshCache[k]={vb,ib,count:m.count};
+  }
+  return meshCache[k];
+}
+
+// ═══════════════════════════════════════════════
+//  PLAYER STATE
+// ═══════════════════════════════════════════════
+let px=8,py=70,pz=8;
+let vx=0,vy=0,vz=0;
+let yaw=0,pitch=0;
+let onGround=false,flying=false;
+let health=20;
+let gameRunning=false,paused=false,invOpen=false;
+let selSlot=0;
+let inventory=new Array(36).fill(null);
+
+// Give starter items
+[[GRASS,64],[DIRT,64],[STONE,64],[LOG,32],[PLANKS,32],
+ [COBBLE,64],[SAND,32],[GLASS,16],[CRAFTING,1]].forEach(([id,n],i)=>{
+  inventory[i]={id,n};
+});
+
+// ── Movement / control settings & state ──
+let mouseSens=0.0015, invertY=false;
+let isSprinting=false, isSneaking=false, isSwimming=false;
+let fovMul=1, gameTime=0;
+let lastGroundedTime=-999, lastJumpPressTime=-999;
+let lastWPressTime=-999, wDoubleSprint=false;
+const COYOTE=0.12, JBUFFER=0.12; // seconds of jump forgiveness
+function ctrlDown(){ return K.ControlLeft||K.ControlRight; }
+function shiftDown(){ return K.ShiftLeft||K.ShiftRight; }
+
+function spawnPlayer(){
+  let s=surfHeight(8,8);
+  s=Math.max(1,Math.min(WH-12,s));
+  px=8.5; py=s+2; pz=8.5;
+  vy=0; onGround=false;
+}
+
+// ═══════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════
+const K={};
+let mouseLeft=false;
+window.addEventListener('keydown',e=>{
+  let firstPress=!K[e.code];
+  K[e.code]=true;
+  if(firstPress){
+    if(e.code==='KeyW'){
+      if(gameTime-lastWPressTime<0.3) wDoubleSprint=true;
+      lastWPressTime=gameTime;
+    }
+    if(e.code==='Space') lastJumpPressTime=gameTime;
+  }
+  if(!gameRunning) return;
+  if(e.code==='Escape'){
+    if(invOpen){ closeInv(); return; }
+    paused=!paused;
+    document.getElementById('pause').style.display=paused?'flex':'none';
+    if(paused) document.exitPointerLock();
+    else canvas.requestPointerLock();
+  }
+  if(e.code==='KeyE'&&!paused){
+    if(invOpen) closeInv();
+    else openInv();
+  }
+  if(e.code==='KeyF') flying=!flying;
+  if(e.code.startsWith('Digit')){
+    let n=+e.code[5]-1;
+    if(n>=0&&n<=8){ selSlot=n; buildHotbar(); }
+  }
+});
+window.addEventListener('keyup',e=>{
+  K[e.code]=false;
+  if(e.code==='KeyW') wDoubleSprint=false;
+});
+
+let miningTarget=null, miningProg=0;
+canvas.addEventListener('mousedown',e=>{
+  if(document.pointerLockElement!==canvas) return;
+  if(e.button===0){ mouseLeft=true; miningProg=0; miningTarget=null; }
+  if(e.button===2) placeBlock();
+});
+canvas.addEventListener('mouseup',e=>{
+  if(e.button===0){ mouseLeft=false; miningProg=0; miningTarget=null; }
+});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('wheel',e=>{
+  selSlot=(selSlot+(e.deltaY>0?1:-1)+9)%9; buildHotbar();
+},{passive:true});
+
+// Mouse look — pointer lock
+canvas.addEventListener('mousemove',e=>{
+  if(document.pointerLockElement!==canvas) return;
+  yaw   += e.movementX * mouseSens;
+  pitch += e.movementY * mouseSens * (invertY?1:-1);
+  pitch  = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01, pitch));
+});
+
+canvas.addEventListener('click',()=>{
+  if(!gameRunning||paused||invOpen) return;
+  canvas.requestPointerLock();
+});
+
+// Keep pause state in sync if pointer lock is lost outside our own Esc handler
+// (e.g. the browser auto-releases it, or the tab loses focus).
+document.addEventListener('pointerlockchange',()=>{
+  if(document.pointerLockElement!==canvas && gameRunning && !invOpen && !paused){
+    paused=true;
+    document.getElementById('pause').style.display='flex';
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  RAYCASTING (DDA)
+// ═══════════════════════════════════════════════
+function raycast(){
+  // Direction from yaw/pitch (same basis as view matrix)
+  let cy=Math.cos(yaw),sy=Math.sin(yaw);
+  let cp=Math.cos(pitch),sp=Math.sin(pitch);
+  // forward in world space: (+X=east,+Y=up,+Z=south)
+  let dx=sy*cp, dy=-sp, dz=cy*cp;
+
+  let ox=px, oy=py+eyeHeight(), oz=pz;
+  const MAXD=6, STEP=0.05;
+  let lbx,lby,lbz;
+  for(let t=STEP;t<MAXD;t+=STEP){
+    let bx=Math.floor(ox+dx*t);
+    let by=Math.floor(oy+dy*t);
+    let bz=Math.floor(oz+dz*t);
+    let b=getBlock(bx,by,bz);
+    if(b&&b!==WATER&&b!==LAVA){
+      let face=lbx!==undefined?[lbx-bx,lby-by,lbz-bz]:[0,1,0];
+      return {bx,by,bz,block:b,face};
+    }
+    lbx=bx;lby=by;lbz=bz;
+  }
+  return null;
+}
+
+function placeBlock(){
+  let ray=raycast();
+  if(!ray||!ray.face) return;
+  let wx=ray.bx+ray.face[0], wy=ray.by+ray.face[1], wz=ray.bz+ray.face[2];
+  // Prevent placing inside player
+  if(Math.abs(wx+0.5-px)<0.7 && (wy>=py-0.2&&wy<=py+1.9) && Math.abs(wz+0.5-pz)<0.7) return;
+  let item=inventory[selSlot];
+  if(!item||!item.n) return;
+  setBlock(wx,wy,wz,item.id);
+  item.n--;
+  if(item.n<=0) inventory[selSlot]=null;
+  buildHotbar();
+}
+
+// ═══════════════════════════════════════════════
+//  PHYSICS
+// ═══════════════════════════════════════════════
+const G=-28, JUMPV=9, SPD=5.2, FSPD=12;
+
+// Player AABB half-widths and height
+const PW=0.3, PH=1.8;
+
+function eyeHeight(){ return isSneaking?1.40:1.62; }
+
+function isSolid(bx,by,bz){
+  let b=getBlock(bx,by,bz);
+  if(!b||b===WATER||b===LAVA||b===AIR) return false;
+  let d=BD[b]; if(!d) return false;
+  // Leaves and glass are visually there but don't block player
+  return true;
+}
+
+// Check if player AABB at (px,py,pz) overlaps any solid block
+// py = bottom of player feet
+function aabbSolid(x,y,z){
+  let x0=Math.floor(x-PW), x1=Math.floor(x+PW);
+  let y0=Math.floor(y),     y1=Math.floor(y+PH-0.001);
+  let z0=Math.floor(z-PW), z1=Math.floor(z+PW);
+  for(let bx=x0;bx<=x1;bx++)
+    for(let by=y0;by<=y1;by++)
+      for(let bz=z0;bz<=z1;bz++)
+        if(isSolid(bx,by,bz)) return true;
+  return false;
+}
+
+function inWaterAt(x,y,z){
+  return getBlock(Math.floor(x),Math.floor(y),Math.floor(z))===WATER;
+}
+
+// True if any corner under the player's feet at (x,y,z) has solid ground —
+// used so sneaking refuses to walk you off a ledge, like vanilla Minecraft.
+function hasGroundEdge(x,y,z){
+  let y0=Math.floor(y-0.05);
+  return isSolid(Math.floor(x-PW),y0,Math.floor(z-PW))||
+         isSolid(Math.floor(x+PW),y0,Math.floor(z-PW))||
+         isSolid(Math.floor(x-PW),y0,Math.floor(z+PW))||
+         isSolid(Math.floor(x+PW),y0,Math.floor(z+PW));
+}
+
+function tickPhysics(dt){
+  if(invOpen||paused) return;
+  gameTime+=dt;
+
+  let swimming = !flying && inWaterAt(px,py+0.9,pz);
+  isSwimming = swimming;
+  let sneaking = !flying && shiftDown() && onGround && !swimming;
+  isSneaking = sneaking;
+  let movingFwd = K.KeyW||K.ArrowUp;
+  let sprinting = !flying && !sneaking && movingFwd && (ctrlDown()||wDoubleSprint);
+  isSprinting = sprinting;
+
+  // Smoothly widen FOV while sprinting, narrow slightly underwater
+  let targetFov = sprinting?1.09:(swimming?0.97:1);
+  fovMul += (targetFov-fovMul)*Math.min(1,dt*8);
+
+  let sp=flying?FSPD:SPD;
+  if(sprinting) sp*=1.6;
+  if(sneaking)  sp*=0.4;
+  if(swimming)  sp*=0.6;
+
+  // Horizontal movement: yaw only (no pitch influence on WASD)
+  let cy=Math.cos(yaw), sy=Math.sin(yaw);
+  let mx=0, mz=0;
+  if(K.KeyW||K.ArrowUp)    { mx+=sy; mz+=cy; }
+  if(K.KeyS||K.ArrowDown)  { mx-=sy; mz-=cy; }
+  if(K.KeyA||K.ArrowLeft)  { mx-=cy; mz+=sy; }
+  if(K.KeyD||K.ArrowRight) { mx+=cy; mz-=sy; }
+  let ml=Math.sqrt(mx*mx+mz*mz);
+  if(ml>0){ mx/=ml; mz/=ml; }
+
+  if(flying){
+    vx=mx*sp; vz=mz*sp;
+    vy=(K.Space?1:shiftDown()?-1:0)*sp;
+    // flying: just move, no collision needed (simple)
+    px+=vx*dt; py+=vy*dt; pz+=vz*dt;
+    onGround=false;
+    return;
+  }
+
+  // Ground / water movement
+  vx=mx*sp; vz=mz*sp;
+
+  if(swimming){
+    vy += G*0.22*dt;            // gentle sink instead of full gravity
+    if(vy<-3.2) vy=-3.2;
+    if(K.Space) vy=Math.min(vy+14*dt,3.2);        // swim up
+    else if(shiftDown()) vy=Math.max(vy-14*dt,-3.2); // swim down
+    else vy*=Math.max(0,1-dt*1.5);                 // settle toward neutral buoyancy
+  } else {
+    vy+=G*dt;
+    if(vy<-60) vy=-60;
+  }
+
+  if(onGround) lastGroundedTime=gameTime;
+  let canInstantJump = !swimming && onGround && K.Space;
+  let canBufferedJump = !swimming && !canInstantJump &&
+    (gameTime-lastGroundedTime<COYOTE) && (gameTime-lastJumpPressTime<JBUFFER);
+  if(canInstantJump||canBufferedJump){
+    vy=JUMPV;
+    onGround=false;
+    lastJumpPressTime=-999;
+    lastGroundedTime=-999;
+  }
+
+  // --- Swept AABB: move one axis at a time, with sneak edge-safety and step-up assist ---
+  // Move X
+  let dirX=vx, nx=px+vx*dt;
+  if(sneaking && dirX!==0 && !hasGroundEdge(nx,py,pz)){
+    // refuse to step off the ledge while sneaking
+  } else if(!aabbSolid(nx,py,pz)){
+    px=nx;
+  } else if(onGround && !aabbSolid(nx,Math.floor(py)+1.0,pz)){
+    // auto-step up a single block-high ledge
+    px=nx; py=Math.floor(py)+1.0; vy=Math.max(vy,0);
+  } else {
+    if(dirX>0) px=Math.floor(px+PW)-PW-0.001;
+    else if(dirX<0) px=Math.floor(px-PW)+1+PW+0.001;
+    vx=0;
+  }
+
+  // Move Z
+  let dirZ=vz, nz=pz+vz*dt;
+  if(sneaking && dirZ!==0 && !hasGroundEdge(px,py,nz)){
+    // refuse to step off the ledge while sneaking
+  } else if(!aabbSolid(px,py,nz)){
+    pz=nz;
+  } else if(onGround && !aabbSolid(px,Math.floor(py)+1.0,nz)){
+    pz=nz; py=Math.floor(py)+1.0; vy=Math.max(vy,0);
+  } else {
+    if(dirZ>0) pz=Math.floor(pz+PW)-PW-0.001;
+    else if(dirZ<0) pz=Math.floor(pz-PW)+1+PW+0.001;
+    vz=0;
+  }
+
+  // Move Y
+  let ny=py+vy*dt;
+  if(vy<0){
+    // Moving down — check feet
+    if(!aabbSolid(px,ny,pz)){
+      py=ny;
+      onGround=false;
+    } else {
+      // Land on top of block
+      py=Math.floor(ny)+1.0;  // snap feet to block top
+      vy=0;
+      onGround=true;
+    }
+  } else {
+    // Moving up — check head
+    if(!aabbSolid(px,ny,pz)){
+      py=ny;
+    } else {
+      // Hit ceiling
+      py=Math.ceil(py+PH)-PH-0.001;
+      vy=0;
+    }
+    onGround=false;
+  }
+
+  // Safety: if still stuck somehow, push up
+  if(aabbSolid(px,py,pz)){
+    py=Math.floor(py)+1.0;
+    vy=0; onGround=true;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  MINING
+// ═══════════════════════════════════════════════
+function tickMining(dt){
+  if(!mouseLeft||invOpen||paused){ miningTarget=null;miningProg=0;return; }
+  let ray=raycast();
+  if(!ray){ miningTarget=null;miningProg=0;return; }
+  if(!miningTarget||miningTarget.bx!==ray.bx||miningTarget.by!==ray.by||miningTarget.bz!==ray.bz){
+    miningTarget=ray; miningProg=0;
+  }
+  let def=BD[ray.block];
+  let hard=def?def.h:2;
+  if(hard<0){ miningTarget=null;return; }
+  miningProg+=dt/(hard*0.38+0.18);
+  if(miningProg>=1){
+    addItem(ray.block,1);
+    setBlock(ray.bx,ray.by,ray.bz,AIR);
+    miningTarget=null;miningProg=0;
+    buildHotbar();
+    showMsg('+1 '+(def?def.n:'Block'));
+  }
+}
+
+function addItem(id,count){
+  for(let i=0;i<36;i++){
+    if(inventory[i]&&inventory[i].id===id&&inventory[i].n<64){
+      inventory[i].n=Math.min(64,inventory[i].n+count); return;
+    }
+  }
+  for(let i=0;i<36;i++){
+    if(!inventory[i]){ inventory[i]={id,n:count}; return; }
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════
+function resize(){
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  gl.viewport(0,0,canvas.width,canvas.height);
+}
+window.addEventListener('resize',resize);resize();
+
+const PROJ=m4(),VIEW=m4();
+const RD=4; // render distance in chunks
+const PREGEN=2; // synchronous warm-up radius on spawn (lazy-loads the rest)
+
+function drawMeshes(){
+  // Bind interleaved buffer
+  let floatSize=4;
+  let stride=STRIDE*floatSize;
+  let cx=Math.floor(px/CHUNK), cz=Math.floor(pz/CHUNK);
+  for(let dcx=-RD;dcx<=RD;dcx++){
+    for(let dcz=-RD;dcz<=RD;dcz++){
+      let mesh=getMesh(cx+dcx,cz+dcz);
+      if(!mesh) continue;
+      gl.bindBuffer(gl.ARRAY_BUFFER,mesh.vb);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,mesh.ib);
+      gl.enableVertexAttribArray(LOC.aP);
+      gl.vertexAttribPointer(LOC.aP,3,gl.FLOAT,false,stride,0);
+      gl.enableVertexAttribArray(LOC.aN);
+      gl.vertexAttribPointer(LOC.aN,3,gl.FLOAT,false,stride,12);
+      gl.enableVertexAttribArray(LOC.aC);
+      gl.vertexAttribPointer(LOC.aC,4,gl.FLOAT,false,stride,24);
+      gl.drawElements(gl.TRIANGLES,mesh.count,gl.UNSIGNED_INT,0);
+    }
+  }
+}
+
+function render(){
+  gl.clearColor(0.52,0.70,0.87,1);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+
+  perspective(Math.PI/3*fovMul, canvas.width/canvas.height, 0.05, 300, PROJ);
+  fpvMatrix(px, py+eyeHeight(), pz, yaw, pitch, VIEW);
+
+  gl.uniformMatrix4fv(LOC.uP,false,PROJ);
+  gl.uniformMatrix4fv(LOC.uV,false,VIEW);
+  gl.uniform3f(LOC.uEye,px,py+eyeHeight(),pz);
+
+  // First pass: opaque
+  gl.depthMask(true);
+  drawMeshes();
+
+  // Block highlight
+  drawTargetOutline();
+}
+
+// ── Target block outline (2D canvas overlay) ──
+const oc=document.getElementById('outline');
+const o2=oc.getContext('2d');
+function resizeOutline(){ oc.width=window.innerWidth; oc.height=window.innerHeight; }
+window.addEventListener('resize',resizeOutline); resizeOutline();
+
+function projectPoint(wx,wy,wz){
+  // Transform world point through projection
+  // VIEW * point
+  let vx2=VIEW[0]*wx+VIEW[4]*wy+VIEW[8]*wz+VIEW[12];
+  let vy2=VIEW[1]*wx+VIEW[5]*wy+VIEW[9]*wz+VIEW[13];
+  let vz2=VIEW[2]*wx+VIEW[6]*wy+VIEW[10]*wz+VIEW[14];
+  let vw2=VIEW[3]*wx+VIEW[7]*wy+VIEW[11]*wz+VIEW[15];
+  // PROJ * view
+  let cx2=PROJ[0]*vx2+PROJ[4]*vy2+PROJ[8]*vz2+PROJ[12]*vw2;
+  let cy2=PROJ[1]*vx2+PROJ[5]*vy2+PROJ[9]*vz2+PROJ[13]*vw2;
+  let cw =PROJ[3]*vx2+PROJ[7]*vy2+PROJ[11]*vz2+PROJ[15]*vw2;
+  if(cw<=0) return null;
+  let ndcx=cx2/cw, ndcy=cy2/cw;
+  return [(ndcx+1)*0.5*canvas.width, (1-ndcy)*0.5*canvas.height];
+}
+
+function drawTargetOutline(){
+  o2.clearRect(0,0,oc.width,oc.height);
+  let ray=raycast();
+  if(!ray) return;
+  // Draw cube wireframe edges
+  let {bx,by,bz}=ray;
+  const EDGES=[
+    [0,0,0,1,0,0],[1,0,0,1,1,0],[1,1,0,0,1,0],[0,1,0,0,0,0],
+    [0,0,1,1,0,1],[1,0,1,1,1,1],[1,1,1,0,1,1],[0,1,1,0,0,1],
+    [0,0,0,0,0,1],[1,0,0,1,0,1],[1,1,0,1,1,1],[0,1,0,0,1,1],
+  ];
+  o2.strokeStyle='rgba(0,0,0,0.7)';
+  o2.lineWidth=2;
+  const E=0.002; // small expand to sit outside block face
+  for(let [x1,y1,z1,x2,y2,z2] of EDGES){
+    let p1=projectPoint(bx+x1,by+y1,bz+z1);
+    let p2=projectPoint(bx+x2,by+y2,bz+z2);
+    if(!p1||!p2) continue;
+    o2.beginPath();
+    o2.moveTo(p1[0],p1[1]);
+    o2.lineTo(p2[0],p2[1]);
+    o2.stroke();
+  }
+  // Mining progress bar on crosshair
+  if(miningTarget&&miningProg>0){
+    let w=120,h=6;
+    let sx=canvas.width/2-w/2, sy=canvas.height/2+24;
+    o2.fillStyle='rgba(0,0,0,0.5)';
+    o2.fillRect(sx,sy,w,h);
+    o2.fillStyle='#fff';
+    o2.fillRect(sx,sy,w*miningProg,h);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  HUD
+// ═══════════════════════════════════════════════
+function blockIcon(id){
+  let def=BD[id]; if(!def) return null;
+  let cv=document.createElement('canvas');
+  cv.width=cv.height=32;
+  let c=cv.getContext('2d');
+  let t=def.t,s=def.s,a=def.a||1;
+  c.globalAlpha=Math.min(1,a+0.2);
+  // isometric mini
+  c.fillStyle=`rgb(${t[0]},${t[1]},${t[2]})`;
+  c.beginPath();c.moveTo(16,2);c.lineTo(30,10);c.lineTo(16,18);c.lineTo(2,10);c.closePath();c.fill();
+  c.fillStyle=`rgb(${Math.floor(s[0]*.78)},${Math.floor(s[1]*.78)},${Math.floor(s[2]*.78)})`;
+  c.fillRect(2,10,14,14);
+  c.fillStyle=`rgb(${Math.floor(s[0]*.58)},${Math.floor(s[1]*.58)},${Math.floor(s[2]*.58)})`;
+  c.fillRect(16,10,14,14);
+  return cv;
+}
+
+function buildHotbar(){
+  let hb=document.getElementById('hotbar');
+  hb.innerHTML='';
+  for(let i=0;i<9;i++){
+    let d=document.createElement('div');
+    d.className='hs'+(i===selSlot?' active':'');
+    let item=inventory[i];
+    if(item){
+      let ic=blockIcon(item.id);
+      if(ic) d.appendChild(ic);
+      if(item.n>1){ let s=document.createElement('span');s.className='cnt';s.textContent=item.n;d.appendChild(s); }
+    }
+    hb.appendChild(d);
+  }
+  // Health
+  let hp=document.getElementById('hp');
+  hp.innerHTML='';
+  for(let i=0;i<10;i++){
+    let s=document.createElement('span');
+    s.className='hrt';
+    s.textContent=i*2<health?'❤':'🖤';
+    hp.appendChild(s);
+  }
+}
+
+function openInv(){
+  invOpen=true;
+  document.exitPointerLock();
+  document.getElementById('inv').style.display='flex';
+  buildInvGrid();
+}
+function closeInv(){
+  invOpen=false;
+  document.getElementById('inv').style.display='none';
+  canvas.requestPointerLock();
+}
+function buildInvGrid(){
+  let g=document.getElementById('inv-grid');
+  g.innerHTML='';
+  // Hotbar row
+  let row1=document.createElement('div');row1.className='inv-row';
+  // 3 rows bag
+  let rows=[document.createElement('div'),document.createElement('div'),document.createElement('div')];
+  rows.forEach(r=>r.className='inv-row');
+  for(let i=0;i<36;i++){
+    let sl=document.createElement('div');sl.className='is';
+    let item=inventory[i];
+    if(item){
+      let ic=blockIcon(item.id);if(ic)sl.appendChild(ic);
+      if(item.n>1){let s=document.createElement('span');s.className='cnt';s.textContent=item.n;sl.appendChild(s);}
+      let def=BD[item.id];sl.title=def?def.n:'';
+    }
+    sl.onclick=()=>{ selSlot=i%9; buildHotbar(); };
+    if(i<9) row1.appendChild(sl);
+    else rows[Math.floor((i-9)/9)].appendChild(sl);
+  }
+  let sep=document.createElement('div');sep.className='inv-sep';
+  g.appendChild(rows[0]);g.appendChild(rows[1]);g.appendChild(rows[2]);
+  g.appendChild(sep);g.appendChild(row1);
+}
+document.getElementById('inv-close').onclick=closeInv;
+
+// Debug / status info
+function updateDbg(){
+  let ray=raycast();
+  let bn=ray?(BD[ray.block]||{n:'?'}).n:'—';
+  let bio=biomeAt(Math.floor(px),Math.floor(pz));
+  document.getElementById('dbg').innerHTML=
+    `X ${px.toFixed(2)} Y ${(py+eyeHeight()).toFixed(2)} Z ${pz.toFixed(2)}<br>`+
+    `Yaw ${(yaw*180/Math.PI).toFixed(1)}° Pitch ${(pitch*180/Math.PI).toFixed(1)}°<br>`+
+    `Biome: ${bio} | Looking: ${bn}<br>`+
+    `onGround:${onGround} | Slot:${selSlot+1}`;
+  let state = flying?'✈ FLYING':isSwimming?'〜 SWIMMING':isSneaking?'⬇ SNEAKING':isSprinting?'⚡ SPRINTING':'⬛ Walking';
+  document.getElementById('statusbar').textContent=state;
+}
+
+let msgTimer=0;
+function showMsg(txt){
+  let m=document.getElementById('notice');
+  m.textContent=txt; m.style.opacity=1; msgTimer=3;
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS UI (sensitivity / invert-Y, available from the pause menu)
+// ═══════════════════════════════════════════════
+const sensSlider=document.getElementById('sensSlider');
+const sensVal=document.getElementById('sensVal');
+sensSlider.addEventListener('input',()=>{
+  let mult=+sensSlider.value;
+  mouseSens=0.0015*mult;
+  sensVal.textContent=mult.toFixed(2)+'x';
+});
+document.getElementById('invertYChk').addEventListener('change',e=>{
+  invertY=e.target.checked;
+});
+
+// ═══════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════
+let lastT=0;
+function loop(now){
+  let dt=Math.min((now-lastT)/1000, 0.05);
+  lastT=now;
+  if(gameRunning&&!paused&&!invOpen){
+    tickPhysics(dt);
+    tickMining(dt);
+    if(msgTimer>0){ msgTimer-=dt; if(msgTimer<=0) document.getElementById('notice').style.opacity=0; }
+  }
+  if(gameRunning) render();
+  if(gameRunning&&!paused) updateDbg();
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════
+//  START
+// ═══════════════════════════════════════════════
+document.getElementById('playbtn').onclick=()=>{
+  document.getElementById('overlay').style.display='none';
+  document.getElementById('hud').style.display='flex';
+  document.getElementById('crosshair').style.display='block';
+  document.getElementById('outline').style.display='block';
+  document.getElementById('dbg').style.display='block';
+  document.getElementById('statusbar').style.display='block';
+  gameRunning=true;
+
+  showMsg('Generating world…');
+  requestAnimationFrame(()=>{
+    // Pre-gen a small radius around spawn so the player never sees a hard edge;
+    // the rest of the render distance lazy-loads as chunks come into view.
+    for(let dx=-PREGEN;dx<=PREGEN;dx++)
+      for(let dz=-PREGEN;dz<=PREGEN;dz++)
+        getChunk(dx,dz);
+    spawnPlayer();
+    buildHotbar();
+    canvas.requestPointerLock();
+    showMsg('Mine: LMB · Place: RMB · Sprint: Ctrl/2xW · Sneak: Shift · Fly: F');
+  });
+};
+
+document.getElementById('resumebtn').onclick=()=>{
+  paused=false;
+  document.getElementById('pause').style.display='none';
+  canvas.requestPointerLock();
+};
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
