@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MineClone</title>
+  <!-- Google Fonts for modern UI and technical debugging display -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <canvas id="outline"></canvas>
+
+  <div id="overlay">
+    <h1>MINECRAFT</h1>
+    <div class="sub">
+      <b>WASD</b> Move &nbsp;·&nbsp; <b>Mouse</b> Look &nbsp;·&nbsp; <b>Space</b> Jump / Swim up<br>
+      <b>Ctrl</b> or double-tap <b>W</b> Sprint &nbsp;·&nbsp; <b>Shift</b> Sneak / Swim down<br>
+      <b>Left click</b> Mine &nbsp;·&nbsp; <b>Right click</b> Place &nbsp;·&nbsp; <b>Scroll / 1-9</b> Hotbar<br>
+      <b>E</b> Inventory &nbsp;·&nbsp; <b>F</b> Fly &nbsp;·&nbsp; <b>Esc</b> Pause &amp; settings
+    </div>
+    <button id="playbtn">▶ PLAY GAME</button>
+  </div>
+
+  <div id="hud">
+    <div id="hp"></div>
+    <div id="hotbar-wrap"><div id="hotbar"></div></div>
+  </div>
+  <div id="crosshair"></div>
+  <div id="dbg"></div>
+  <div id="statusbar"></div>
+  <div id="notice"></div>
+
+  <div id="pause">
+    <h2>PAUSED</h2>
+    <button class="pbtn" id="resumebtn">Resume Game</button>
+    <div id="settings-box">
+      <label class="set-row">Mouse sensitivity
+        <input type="range" id="sensSlider" min="0.3" max="3" step="0.05" value="1">
+        <span id="sensVal">1.00x</span>
+      </label>
+      <label class="set-row">Invert Y
+        <input type="checkbox" id="invertYChk">
+      </label>
+    </div>
+    <button class="pbtn" onclick="location.reload()">Main Menu</button>
+  </div>
+
+  <div id="inv">
+    <div id="inv-box">
+      <h3>INVENTORY</h3>
+      <div id="inv-grid"></div>
+      <button id="inv-close">Close Inventory [E]</button>
+    </div>
+  </div>
+
+  <!-- Entry Script -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
