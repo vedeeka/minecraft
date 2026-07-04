@@ -37,6 +37,78 @@ mineclone/
     └── ui.js           # Hotbar rendering, debug panels, and vector HUD elements
 
 ```
+
+
+---
+
+# How to Run Locally
+
+Since MineClone is built using **vanilla JavaScript ES modules**, modern browsers block module loading when opening files directly using the `file://` protocol. Run the project using a local development server instead.
+
+## Option 1: Python HTTP Server
+
+Open a terminal and navigate to the project directory:
+
+```bash
+cd path/to/mineclone
+```
+
+Start a local server:
+
+```bash
+python3 -m http.server 8000
+```
+
+For Windows (if `python3` doesn't work):
+
+```bash
+python -m http.server 8000
+```
+
+Open your browser and visit:
+
+```
+http://localhost:8000
+```
+
+---
+
+## Option 2: Visual Studio Code (Live Server)
+
+1. Open the project in **Visual Studio Code**.
+2. Install the **Live Server** extension by **Ritwick Dey**.
+3. Open the **MineClone** project folder.
+4. Click **Go Live** in the bottom-right corner of VS Code.
+
+Your browser will automatically open the project.
+
+---
+
+## Option 3: Node.js (`serve`)
+
+Install the `serve` package globally (one-time setup):
+
+```bash
+npm install -g serve
+```
+
+Navigate to the project directory:
+
+```bash
+cd path/to/mineclone
+```
+
+Start the server:
+
+```bash
+serve .
+```
+
+Open the URL displayed in the terminal (typically):
+
+```
+http://localhost:3000
+```
 ## License
 
 Free to use, modify, and distribute — for personal projects, no attribution required. 
