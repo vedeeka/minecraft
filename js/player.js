@@ -24,7 +24,9 @@ export function spawnPlayer() {
 export function raycast() {
   let cy = Math.cos(player.yaw), sy = Math.sin(player.yaw);
   let cp = Math.cos(player.pitch), sp = Math.sin(player.pitch);
-  let dx = sy * cp, dy = -sp, dz = cy * cp;
+  
+  // Adjusted vector signs to align raycasting directly with the camera's forward view
+  let dx = -sy * cp, dy = sp, dz = -cy * cp;
 
   let ox = player.x, oy = player.y + eyeHeight(), oz = player.z;
   const MAXD = 6, STEP = 0.05;
@@ -48,9 +50,13 @@ export function placeBlock() {
   let ray = raycast();
   if (!ray || !ray.face) return;
   let wx = ray.bx + ray.face[0], wy = ray.by + ray.face[1], wz = ray.bz + ray.face[2];
+  
+  // Prevent placing blocks inside the player's collision volume
   if (Math.abs(wx + 0.5 - player.x) < 0.7 && (wy >= player.y - 0.2 && wy <= player.y + 1.9) && Math.abs(wz + 0.5 - player.z) < 0.7) return;
+  
   let item = player.inventory[player.selSlot];
   if (!item || !item.n) return;
+  
   setBlock(wx, wy, wz, item.id);
   item.n--;
   if (item.n <= 0) player.inventory[player.selSlot] = null;
