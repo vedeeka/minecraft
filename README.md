@@ -3,6 +3,11 @@
 A modular, lightweight 3D sandbox exploration game built from scratch using vanilla HTML5, CSS3, WebGL, and JavaScript ES modules. It features infinite procedural world generation, realistic climate-driven biomes, and a modern glassmorphic user interface.
 
 ---
+## Demo
+
+![Minecarft Demo](images/img1.png)
+![Minecarft Demo](images/img2.png)
+----
 
 ## Features
 
