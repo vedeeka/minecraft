@@ -35,3 +35,8 @@ mineclone/
     ├── physics.js      # Player movement, AABB collisions, and swimming
     ├── renderer.js     # WebGL shaders, buffer management, and drawing cycles
     └── ui.js           # Hotbar rendering, debug panels, and vector HUD elements
+
+## License
+
+Free to use, modify, and distribute — for personal or commercial
+projects, no attribution required. 
