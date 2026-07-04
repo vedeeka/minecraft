@@ -1,4 +1,4 @@
-# MineClone
+# MinecraftClone
 
 A modular, lightweight 3D sandbox exploration game built from scratch using vanilla HTML5, CSS3, WebGL, and JavaScript ES modules. It features infinite procedural world generation, realistic climate-driven biomes, and a modern glassmorphic user interface.
 
@@ -36,7 +36,7 @@ mineclone/
     ├── renderer.js     # WebGL shaders, buffer management, and drawing cycles
     └── ui.js           # Hotbar rendering, debug panels, and vector HUD elements
 
+```
 ## License
 
-Free to use, modify, and distribute — for personal or commercial
-projects, no attribution required. 
+Free to use, modify, and distribute — for personal projects, no attribution required. 
